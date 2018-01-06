@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# pass candidate to function to check
+function isPalindrone
+{
+	# stores candidate that was passed as a parameter
+    candidate=$1
+	# stores the first char of the candidate
+    firstChar=${candidate:0:1}
+	# stores the last char of the candidate
+    lastChar=${candidate: -1}
+	# gets the length of the candidate
+	length=${#candidate}
+	# checks length, anything less than two has been stripped and is a palindrome
+	if [[ "$length" -lt 2 ]]
+	then
+		# return 0, meaning the candidate is a palindrome
+		return 0
+	# checks to see if the first char and the last char are the same
+	elif [[ "$firstChar" == "$lastChar" ]]
+    then
+		# strips the first and last character of the string
+		stripped=${candidate:1: -1}
+		# recalls the function passing the stripped candidate as a parameter
+        isPalindrone $stripped
+	else
+		# return 1, meaning the candidate is not a palindrome
+		return 1
+	fi
+}
+
+# creates temp files
+tmp=$(mktemp tmp.XXXXXX)
+tmp2=$(mktemp tmp.XXXXXX)
+
+# command that converts upper case to lower, removes digits and punctuation and finds
+# all word matches with length greater than 2
+cat $@ | tr '[:upper:]' '[:lower:]' | tr -d '[:digit:]' | tr -d '[:punct:]'  | grep -oE '[a-z]{3,}' > $tmp
+
+# deletes words which have less than 2 unique characters
+sed -i -E '/\b([a-z])\1+\b/d' $tmp
+
+# loop over the tmp file
+while read -r word
+do
+    # if the current looped item is a palindrome
+    if isPalindrone $word
+    then
+        # output the item to temp file
+        echo $word >> $tmp2
+    fi
+done < $tmp
+
+# counts the number of unique lines and sorts in descending order
+sort $tmp2 | uniq -c | sort -gr
+
+# removes the temp file
+rm $tmp
+rm $tmp2
